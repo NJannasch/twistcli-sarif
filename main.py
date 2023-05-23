@@ -17,7 +17,7 @@ def format_sarif(twistcli_version, results_file):
                     'name': 'Prisma Cloud (twistcli)',
                     'version': twistcli_version,
                     'rules': [{
-                        'id': vc['id'],
+                        'id': f"{vc['id']}",
                         'shortDescription': {
                             'text': f"[Prisma Cloud] {vc['id']} in {vc.get('packageName', '')} ({vc['severity']})",
                         },
@@ -32,7 +32,7 @@ def format_sarif(twistcli_version, results_file):
                 },
             },
             'results': [{
-                'ruleId': vc['id'],
+                'ruleId': f"{vc['id']}",
                 'level': 'warning',
                 'message': {
                     'text': f"Description:\n{vc.get('description', '')}",

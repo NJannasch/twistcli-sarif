@@ -1,0 +1,28 @@
+variables:
+  IMAGE_NAME: $CI_PROJECT_PATH:$CI_COMMIT_SHA
+
+image: docker:19.03
+services:
+  - docker:19.03-dind
+
+build-and-scan:
+  script:
+    - |
+      wget --header "Authorization: Basic $(echo -n $PCC_USER:$PCC_PASS | base64 | tr -d '\n')" "$PCC_CONSOLE_URL/api/v1/util/twistcli"
+      chmod a+x ./twistcli
+      docker build -t $IMAGE_NAME .
+      ./twistcli images scan --docker-address http://docker:2375 --address $PCC_CONSOLE_URL --user $PCC_USER --password $PCC_PASS --output-file results.json --details $IMAGE_NAME
+# Convert output to sarif
+    - |
+      apk add python3
+      wget -O converter.py https://raw.githubusercontent.com/NJannasch/twistcli-sarif/main/main.py
+      export TL_VERSION=$(./twistcli --version)
+      python3 converter.py --twistcli "$TL_VERSION" --results "results.json" --output "sarif.json"
+# Convert sarif to gl-code-quality-report
+    - |
+      wget -O sarif-converter https://gitlab.com/ignis-build/sarif-converter/-/releases/permalink/latest/downloads/bin/sarif-converter-linux
+      chmod +x sarif-converter
+      ./sarif-converter --type codequality sarif.json gl-code-quality-report.json
+  artifacts:
+    reports:
+      codequality: gl-code-quality-report.json

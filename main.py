@@ -19,7 +19,7 @@ def format_sarif(twistcli_version, results_file):
                     'rules': [{
                         'id': f"{vc['id']}",
                         'shortDescription': {
-                            'text': f"[Prisma Cloud] {vc['id']} in {vc.get('packageName', '')} ({vc['severity']})",
+                            'text': f"[Prisma Cloud] {vc['id']} in {vc.get('packageName', '')}",
                         },
                         'fullDescription': {
                             'text': f"{vc['severity'].capitalize()} severity {vc['id']} found in {vc.get('packageName', '')} version {vc.get('packageVersion', '')}",

@@ -27,7 +27,7 @@ def format_sarif(twistcli_version, results_file):
                         'help': {
                             'text': '',
                             'markdown': f"| {vc['id']} | {vc['severity']} | {vc.get('cvss', 'N/A')} | {vc.get('packageName', '')} | {vc.get('packageVersion', '')} | {vc.get('status', 'not fixed')} | {vc.get('publishedDate', '')} | {vc.get('discoveredDate', '')} |",
-                        }
+                        },
                         'properties': {
                             'security-severity': vc['severity'],
                         },

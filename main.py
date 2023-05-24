@@ -19,7 +19,7 @@ def format_sarif(twistcli_version, results_file):
                     'rules': [{
                         'id': f"{vc['id']}",
                         'shortDescription': {
-                            'text': f"[Prisma Cloud] {vc['id']} in {vc.get('packageName', '')} ({vc['severity']})",
+                            'text': f"[Prisma Cloud] {vc['id']} in {vc.get('packageName', '')}",
                         },
                         'fullDescription': {
                             'text': f"{vc['severity'].capitalize()} severity {vc['id']} found in {vc.get('packageName', '')} version {vc.get('packageVersion', '')}",
@@ -27,7 +27,10 @@ def format_sarif(twistcli_version, results_file):
                         'help': {
                             'text': '',
                             'markdown': f"| {vc['id']} | {vc['severity']} | {vc.get('cvss', 'N/A')} | {vc.get('packageName', '')} | {vc.get('packageVersion', '')} | {vc.get('status', 'not fixed')} | {vc.get('publishedDate', '')} | {vc.get('discoveredDate', '')} |",
-                        }
+                        },
+                        'properties': {
+                            'security-severity': f"{vc.get('cvss', '0.0')}",
+                        },
                     } for vc in vuln_comps],
                 },
             },

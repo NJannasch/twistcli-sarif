@@ -1,0 +1,70 @@
+name: Build Image and Scan with Prisma Cloud
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  BUILD_IMAGE: "<IMAGE_NAME>"
+
+jobs:
+  prisma_cloud_iac_scan:
+    runs-on: ubuntu-latest
+    permissions:
+      # required for all workflows
+      security-events: write
+    name: Run Prisma Cloud IaC Scan to check 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      #Set up JDK 11
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: '11'
+
+      #Set up Maven cache
+      - name: Cache Maven packages
+        #This action allows caching dependencies and build outputs to improve workflow execution time.
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      #Build the application using Maven
+      - name: Build with Maven
+        run: mvn -B package -DskipTests --file pom.xml
+
+      #Build Docker image
+      - name: Build the Docker image
+        run: docker build . --tag ${{ env.BUILD_IMAGE }}
+          
+      - name: Prisma Cloud image scan
+        id: scan
+        uses: PaloAltoNetworks/prisma-cloud-scan@v1
+        with:
+          pcc_console_url: ${{ secrets.PRISMA_CLOUD_CONSOLE }}
+          pcc_user: ${{ secrets.PCC_USER }}
+          pcc_pass: ${{ secrets.PCC_PASS }}
+          image_name: ${{ env.BUILD_IMAGE }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies and run scripts
+        run: |
+          sudo apt-get install -y python3
+          wget -O converter.py https://raw.githubusercontent.com/SimOnPanw/twistcli-sarif/main/main.py
+          export TL_VERSION=$(curl -s -k -u ${{ secrets.PCC_USER }}:${{ secrets.PCC_PASS }} ${{ env.PRISMA_CLOUD_CONSOLE }}/api/v1/version)
+          python3 converter.py --twistcli "$TL_VERSION" --results ${{ steps.scan.outputs.results_file }} --output "results.sarif"
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif

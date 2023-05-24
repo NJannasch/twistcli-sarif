@@ -31,7 +31,7 @@ def format_sarif(twistcli_version, results_file):
                         },
                         'properties': {
                             'security-severity': vc['severity'],
-                        }
+                        },
                     } for vc in vuln_comps],
                 },
             },

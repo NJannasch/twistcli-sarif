@@ -8,33 +8,32 @@ def format_sarif(twistcli_version, results_file):
     results = scan['results'][0]
     vuln_comps = results.get('vulnerabilities', []) + results.get('compliances', [])
 
-    return {
-        '$schema': 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
-        'version': '2.1.0',
-        'runs': [{
-            'tool': {
-                'driver': {
-                    'name': 'Prisma Cloud (twistcli)',
-                    'version': twistcli_version,
-                    'rules': [{
-                        'id': f"{vc['id']}",
-                        'shortDescription': {
-                            'text': f"[Prisma Cloud] {vc['id']} in {vc.get('packageName', '')}",
-                        },
-                        'fullDescription': {
-                            'text': f"{vc['severity'].capitalize()} severity {vc['id']} found in {vc.get('packageName', '')} version {vc.get('packageVersion', '')}",
-                        },
-                        'help': {
-                            'text': '',
-                            'markdown': f"| {vc['id']} | {vc['severity']} | {vc.get('cvss', 'N/A')} | {vc.get('packageName', '')} | {vc.get('packageVersion', '')} | {vc.get('status', 'not fixed')} | {vc.get('publishedDate', '')} | {vc.get('discoveredDate', '')} |",
-                        },
-                        'properties': {
-                            'security-severity': f"{vc.get('cvss', '0.0')}",
-                        },
-                    } for vc in vuln_comps],
+    encountered_ids = set()  # new set to keep track of rule ids
+    rules = []  # list to keep rules
+    sarif_results = []  # list to keep results
+
+    for vc in vuln_comps:
+        if vc['id'] not in encountered_ids:
+            encountered_ids.add(vc['id'])
+
+            rule = {
+                'id': f"{vc['id']}",
+                'shortDescription': {
+                    'text': f"[Prisma Cloud] {vc['id']} in {vc.get('packageName', '')}",
                 },
-            },
-            'results': [{
+                'fullDescription': {
+                    'text': f"{vc['severity'].capitalize()} severity {vc['id']} found in {vc.get('packageName', '')} version {vc.get('packageVersion', '')}",
+                },
+                'help': {
+                    'text': '',
+                    'markdown': f"| {vc['id']} | {vc['severity']} | {vc.get('cvss', 'N/A')} | {vc.get('packageName', '')} | {vc.get('packageVersion', '')} | {vc.get('status', 'not fixed')} | {vc.get('publishedDate', '')} | {vc.get('discoveredDate', '')} |",
+                },
+                'properties': {
+                    'security-severity': f"{vc.get('cvss', '0.0')}",
+                },
+            }
+
+            result = {
                 'ruleId': f"{vc['id']}",
                 'level': 'warning',
                 'message': {
@@ -53,7 +52,23 @@ def format_sarif(twistcli_version, results_file):
                         },
                     },
                 }]
-            } for vc in vuln_comps],
+            }
+
+            rules.append(rule)
+            sarif_results.append(result)
+
+    return {
+        '$schema': 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
+        'version': '2.1.0',
+        'runs': [{
+            'tool': {
+                'driver': {
+                    'name': 'Prisma Cloud (twistcli)',
+                    'version': twistcli_version,
+                    'rules': rules,
+                },
+            },
+            'results': sarif_results,
         }],
     }
 

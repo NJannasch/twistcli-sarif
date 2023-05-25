@@ -88,5 +88,6 @@ def main():
 
     print(f"Output written to {args.output}")
 
+
 if __name__ == "__main__":
     main()
